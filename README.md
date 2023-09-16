@@ -1,2 +1,3 @@
 # Slides
-Slides for presentations.
+
+Slides for presentations, including demos.
