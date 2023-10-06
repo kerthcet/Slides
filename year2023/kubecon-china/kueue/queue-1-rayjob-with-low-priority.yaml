@@ -1,7 +1,7 @@
 apiVersion: ray.io/v1alpha1
 kind: RayJob
 metadata:
-  name: rayjob-sample
+  name: queue-1-rayjob-low-3c3gi
   labels:
     kueue.x-k8s.io/queue-name: queue-1
 spec:
@@ -17,7 +17,7 @@ spec:
   #        "counter_name": "test_counter"
   #    }
   #}'
-  runtimeEnv: ewogICAgInBpcCI6IFsKICAgICAgICAicmVxdWVzdHM9PTIuMjYuMCIsCiAgICAgICAgInBlbmR1bHVtPT0yLjEuMiIKICAgIF0sCiAgICAiZW52X3ZhcnMiOiB7ImNvdW50ZXJfbmFtZSI6ICJ0ZXN0X2NvdW50ZXIifQp9Cg==
+  runtimeEnv: ""
   # Suspend specifies whether the RayJob controller should create a RayCluster instance.
   # If a job is applied with the suspend field set to true, the RayCluster will not be created and we will wait for the transition to false.
   # If the RayCluster is already created, it will be deleted. In the case of transition to false, a new RayCluste rwill be created.
@@ -35,6 +35,7 @@ spec:
       #pod template
       template:
         spec:
+          priorityClassName: low-priority
           containers:
             - name: ray-head
               image: rayproject/ray:2.5.0
@@ -51,7 +52,7 @@ spec:
                 limits:
                   cpu: "1"
                 requests:
-                  cpu: "200m"
+                  cpu: "1"
               volumeMounts:
                 - mountPath: /home/ray/samples
                   name: code-sample
@@ -60,15 +61,15 @@ spec:
             - name: code-sample
               configMap:
                 # Provide the name of the ConfigMap you want to mount.
-                name: ray-job-code-sample
+                name: ray-job-code-sample-low
                 # An array of keys from the ConfigMap to create as files
                 items:
                   - key: sample_code.py
                     path: sample_code.py
     workerGroupSpecs:
       # the pod replicas in this group typed worker
-      - replicas: 1
-        minReplicas: 1
+      - replicas: 2
+        minReplicas: 2
         maxReplicas: 5
         # logical group name, for this called small-group, also can be functional
         groupName: small-group
@@ -90,7 +91,7 @@ spec:
                   limits:
                     cpu: "1"
                   requests:
-                    cpu: "200m"
+                    cpu: "1"
   # SubmitterPodTemplate is the template for the pod that will run the `ray job submit` command against the RayCluster.
   # If SubmitterPodTemplate is specified, the first container is assumed to be the submitter container.
   # submitterPodTemplate:
@@ -111,32 +112,13 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ray-job-code-sample
+  name: ray-job-code-sample-low
 data:
   sample_code.py: |
-    import ray
-    import os
-    import requests
+    import time
 
-    ray.init()
-
-    @ray.remote
-    class Counter:
-        def __init__(self):
-            # Used to verify runtimeEnv
-            self.name = os.getenv("counter_name")
-            self.counter = 0
-
-        def inc(self):
-            self.counter += 1
-
-        def get_counter(self):
-            return "{} got {}".format(self.name, self.counter)
-
-    counter = Counter.remote()
-
-    for _ in range(5):
-        ray.get(counter.inc.remote())
-        print(ray.get(counter.get_counter.remote()))
-
-    print(requests.__version__)
+    i = 1
+    while True:
+        print(i)
+        i += 1
+        time.sleep(2)
